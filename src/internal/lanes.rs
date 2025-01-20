@@ -1,4 +1,4 @@
-use sdl2::{rect::Rect, render::Canvas, video::Window};
+use sdl2::{pixels::Color, rect::Rect, render::Canvas, video::Window};
 
 use super::constants::*;
 
@@ -47,14 +47,14 @@ pub fn draw_lanes(canvas: &mut Canvas<Window>, direction: Direction) {
             (WINDOW_HEIGHT / 2) as i32 - (ROAD_HORIZONTAL_WIDTH / 2) as i32,
             false,
             0,
-            INTERSECTION_BOUNDARY_WEST as i32,
+            get_intersection_boundaries().0,
             40,
         ),
         Direction::East => (
             6,
             (WINDOW_HEIGHT / 2) as i32 - (ROAD_HORIZONTAL_WIDTH / 2) as i32,
             false,
-            INTERSECTION_BOUNDARY_EAST as i32,
+            get_intersection_boundaries().1,
             WINDOW_WIDTH as i32,
             40,
         ),
@@ -63,14 +63,14 @@ pub fn draw_lanes(canvas: &mut Canvas<Window>, direction: Direction) {
             (WINDOW_WIDTH / 2) as i32 - (ROAD_VERTICAL_WIDTH / 2) as i32,
             true,
             0,
-            INTERSECTION_BOUNDARY_NOTRTH as i32,
+            get_intersection_boundaries().2,
             40,
         ),
         Direction::South => (
             6,
             (WINDOW_WIDTH / 2) as i32 - (ROAD_VERTICAL_WIDTH / 2) as i32,
             true,
-            INTERSECTION_BOUNDARY_SOUTH as i32,
+            get_intersection_boundaries().3,
             WINDOW_HEIGHT as i32,
             40,
         ),
@@ -83,12 +83,76 @@ pub fn draw_lanes(canvas: &mut Canvas<Window>, direction: Direction) {
     };
 
     // Draw outer boundaries of the road section
-    let outer_start = road_start;
-    let outer_end = road_start + (lane_width * lane_count);
+    let _outer_start = road_start;
+    let _outer_end = road_start + (lane_width * lane_count);
     
     // Draw each lane divider (excluding outer boundaries)
     for lane in 1..lane_count {
         let lane_offset = road_start + (lane_width * lane);
         draw_lane_dividers(canvas, start, end, step, is_vertical, lane_offset);
     }
+
+    // Create text renderer
+    let ttf_context = sdl2::ttf::init().unwrap();
+    let font = ttf_context.load_font("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24).unwrap();
+    let texture_creator = canvas.texture_creator();
+
+    // Draw lane numbers
+    canvas.set_draw_color(Color::RGB(255, 255, 255));  // White color for text
+
+    match direction {
+        Direction::West => {
+            // West section lane numbers (1-6 from top to bottom)
+            for i in 0..lane_count {
+                let x = (WINDOW_WIDTH as i32) / 2 - (ROAD_VERTICAL_WIDTH as i32) / 2 - 30;
+                let y = (WINDOW_HEIGHT as i32) / 2 - (ROAD_HORIZONTAL_WIDTH as i32) / 2 + (lane_width as i32 * i);
+                let surface = font.render(&format!("{}", i + 1)).blended(Color::WHITE).unwrap();
+                let texture = texture_creator.create_texture_from_surface(&surface).unwrap();
+                let rect = Rect::new(x, y, 20, 20);
+                canvas.copy(&texture, None, Some(rect)).unwrap();
+            }
+        },
+        Direction::East => {
+            // East section lane numbers (1-6 from top to bottom)
+            for i in 0..lane_count {
+                let x = (WINDOW_WIDTH as i32) / 2 + (ROAD_HORIZONTAL_WIDTH as i32) / 2 + 10;
+                let y = (WINDOW_HEIGHT as i32) / 2 - (ROAD_VERTICAL_WIDTH as i32) / 2 + (lane_width as i32 * i);
+                let surface = font.render(&format!("{}", i + 1)).blended(Color::WHITE).unwrap();
+                let texture = texture_creator.create_texture_from_surface(&surface).unwrap();
+                let rect = Rect::new(x, y, 20, 20);
+                canvas.copy(&texture, None, Some(rect)).unwrap();
+            }
+        },
+        Direction::North => {
+            // North section lane numbers (1-6 from left to right)
+            for i in 0..lane_count {
+                let x = (WINDOW_WIDTH as i32) / 2 - (ROAD_VERTICAL_WIDTH as i32) / 2 + (lane_width as i32 * i);
+                let y = (WINDOW_HEIGHT as i32) / 2 - (ROAD_HORIZONTAL_WIDTH as i32) / 2 - 30;
+                let surface = font.render(&format!("{}", i + 1)).blended(Color::WHITE).unwrap();
+                let texture = texture_creator.create_texture_from_surface(&surface).unwrap();
+                let rect = Rect::new(x, y, 20, 20);
+                canvas.copy(&texture, None, Some(rect)).unwrap();
+            }
+        },
+        Direction::South => {
+            // South section lane numbers (1-6 from left to right)
+            for i in 0..lane_count {
+                let x = (WINDOW_WIDTH as i32) / 2 - (ROAD_VERTICAL_WIDTH as i32) / 2 + (lane_width as i32 * i);
+                let y = (WINDOW_HEIGHT as i32) / 2 + (ROAD_HORIZONTAL_WIDTH as i32) / 2 + 10;
+                let surface = font.render(&format!("{}", i + 1)).blended(Color::WHITE).unwrap();
+                let texture = texture_creator.create_texture_from_surface(&surface).unwrap();
+                let rect = Rect::new(x, y, 20, 20);
+                canvas.copy(&texture, None, Some(rect)).unwrap();
+            }
+        },
+    }
+}
+
+pub fn get_intersection_boundaries() -> (i32, i32, i32, i32) {
+    (
+        INTERSECTION_BOUNDARY_WEST as i32,
+        INTERSECTION_BOUNDARY_EAST as i32,
+        INTERSECTION_BOUNDARY_NORTH as i32,
+        INTERSECTION_BOUNDARY_SOUTH as i32,
+    )
 }
