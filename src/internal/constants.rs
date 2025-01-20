@@ -1,8 +1,9 @@
-pub const WINDOW_WIDTH: u32 = 1600;
-pub const WINDOW_HEIGHT: u32 = 1000;
+pub const WINDOW_WIDTH: u32 = 1280;
+pub const WINDOW_HEIGHT: u32 = 720;
 
-pub const ROAD_HORIZONTAL_WIDTH: u32 = 480;
-pub const ROAD_VERTICAL_WIDTH: u32 = 480;
+// Road widths adjusted to be divisible by 6 (number of lanes)
+pub const ROAD_HORIZONTAL_WIDTH: u32 = 498;  // 83 pixels per lane
+pub const ROAD_VERTICAL_WIDTH: u32 = 498;    // 83 pixels per lane
 
 pub const INTERSECTION_BOUNDARY_NOTRTH: u32 = (WINDOW_HEIGHT / 2) - (ROAD_VERTICAL_WIDTH / 2);
 pub const INTERSECTION_BOUNDARY_SOUTH: u32 = (WINDOW_HEIGHT / 2) + (ROAD_VERTICAL_WIDTH / 2);

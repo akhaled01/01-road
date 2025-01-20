@@ -20,11 +20,14 @@ fn draw_lane_dividers(
     is_vertical: bool,
     lane_offset: i32,
 ) {
+    // Adjust divider width to be consistent
+    let divider_width = 3;
+    
     for pos in (start..end).step_by(step as usize) {
         let rect = if is_vertical {
-            Rect::new(lane_offset, pos, 5, 20)
+            Rect::new(lane_offset - (divider_width / 2), pos, divider_width as u32, 20)
         } else {
-            Rect::new(pos, lane_offset, 20, 5)
+            Rect::new(pos, lane_offset - (divider_width / 2), 20, divider_width as u32)
         };
 
         canvas.fill_rect(rect).unwrap_or_else(|e| {
@@ -79,8 +82,13 @@ pub fn draw_lanes(canvas: &mut Canvas<Window>, direction: Direction) {
         ROAD_HORIZONTAL_WIDTH as i32 / lane_count
     };
 
-    for lane in 0..lane_count {
-        let lane_offset = road_start + (lane_width * lane) + (lane_width / 2) - 5;
+    // Draw outer boundaries of the road section
+    let outer_start = road_start;
+    let outer_end = road_start + (lane_width * lane_count);
+    
+    // Draw each lane divider (excluding outer boundaries)
+    for lane in 1..lane_count {
+        let lane_offset = road_start + (lane_width * lane);
         draw_lane_dividers(canvas, start, end, step, is_vertical, lane_offset);
     }
 }
