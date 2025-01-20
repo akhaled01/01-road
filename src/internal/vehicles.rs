@@ -2,7 +2,6 @@ use sdl2::{pixels::Color, rect::Rect, render::Canvas, video::Window};
 use super::lanes::Direction;
 use super::constants::*;
 use rand::Rng;
-use rand::seq::SliceRandom;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum TurnDirection {
@@ -35,29 +34,34 @@ impl Vehicle {
     }
 
     fn get_start_position(direction: Direction, lane: i32) -> (i32, i32) {
+        // Convert lane index (0-5) to actual position
         let lane_offset = lane * LANE_WIDTH + (LANE_WIDTH / 2);
         
         match direction {
             Direction::North => {
+                // For North, lanes go from left to right (1-6)
                 let x = (WINDOW_WIDTH as i32 / 2) - (ROAD_VERTICAL_WIDTH as i32 / 2) + lane_offset;
                 let y = WINDOW_HEIGHT as i32;
                 (x, y)
             },
             Direction::South => {
-                let x = (WINDOW_WIDTH as i32 / 2) + (ROAD_VERTICAL_WIDTH as i32 / 2) - lane_offset - LANE_WIDTH;
+                // For South, lanes go from left to right (1-6)
+                let x = (WINDOW_WIDTH as i32 / 2) - (ROAD_VERTICAL_WIDTH as i32 / 2) + lane_offset;
                 let y = 0;
                 (x, y)
             },
             Direction::East => {
+                // For East, lanes go from top to bottom (1-6)
                 let x = 0;
-                let y = (WINDOW_HEIGHT as i32 / 2) - (ROAD_HORIZONTAL_WIDTH as i32 / 2) + lane_offset;
+                let y = (WINDOW_HEIGHT as i32 / 2) - (ROAD_VERTICAL_WIDTH as i32 / 2) + lane_offset;
                 (x, y)
             },
             Direction::West => {
+                // For West, lanes go from top to bottom (1-6)
                 let x = WINDOW_WIDTH as i32;
-                let y = (WINDOW_HEIGHT as i32 / 2) + (ROAD_HORIZONTAL_WIDTH as i32 / 2) - lane_offset - LANE_WIDTH;
+                let y = (WINDOW_HEIGHT as i32 / 2) - (ROAD_VERTICAL_WIDTH as i32 / 2) + lane_offset;
                 (x, y)
-            },
+            }
         }
     }
 
@@ -66,54 +70,56 @@ impl Vehicle {
         let directions = [Direction::North, Direction::South, Direction::East, Direction::West];
         let direction = directions[rng.gen_range(0..4)];
         
-        // Determine valid lanes based on direction
-        let (lane_start, lane_count) = match direction {
-            // North & East: Lanes 1-3 are outbound (0-2)
-            Direction::North | Direction::East => (0, 3),
-            // West & South: Lanes 4-6 are outbound (3-5)
-            Direction::West | Direction::South => (3, 3),
-        };
-        
-        let lane = lane_start + rng.gen_range(0..lane_count);
-        
-        // Assign turn direction based on lane position
-        let turn_direction = match direction {
-            // For North/East, only lane 0 can turn right
-            Direction::North | Direction::East => {
-                if lane == 0 {
-                    // First lane can do any turn
-                    let turns = [TurnDirection::Left, TurnDirection::Straight, TurnDirection::Right];
-                    *turns.choose(&mut rng).unwrap()
-                } else if lane == 2 {
-                    // Last lane can only turn left or go straight
-                    if rng.gen_bool(0.5) {
-                        TurnDirection::Left
-                    } else {
-                        TurnDirection::Straight
-                    }
-                } else {
-                    // Middle lane goes straight
-                    TurnDirection::Straight
-                }
+        // Get valid lanes and their turn directions based on direction
+        let (lane, turn_direction) = match direction {
+            Direction::East => {
+                // East: Only Lanes 4,5,6 (inbound)
+                let lane_idx = rng.gen_range(0..LANES_PER_SIDE);
+                let lane = EAST_INBOUND_START + lane_idx;
+                let turn_direction = match lane_idx {
+                    0 => TurnDirection::Left,     // Lane 4 -> North 4
+                    1 => TurnDirection::Straight, // Lane 5 -> East 5
+                    2 => TurnDirection::Right,    // Lane 6 -> South 1
+                    _ => unreachable!()
+                };
+                (lane, turn_direction)
             },
-            // For West/South, only lane 5 can turn right
-            Direction::West | Direction::South => {
-                if lane == 5 {
-                    // Last lane can do any turn
-                    let turns = [TurnDirection::Left, TurnDirection::Straight, TurnDirection::Right];
-                    *turns.choose(&mut rng).unwrap()
-                } else if lane == 3 {
-                    // First lane can only turn left or go straight
-                    if rng.gen_bool(0.5) {
-                        TurnDirection::Left
-                    } else {
-                        TurnDirection::Straight
-                    }
-                } else {
-                    // Middle lane goes straight
-                    TurnDirection::Straight
-                }
-            }
+            Direction::South => {
+                // South: Only Lanes 1,2,3 (inbound)
+                let lane_idx = rng.gen_range(0..LANES_PER_SIDE);
+                let lane = SOUTH_INBOUND_START + lane_idx;
+                let turn_direction = match lane_idx {
+                    0 => TurnDirection::Right,    // Lane 1 -> West 1
+                    1 => TurnDirection::Straight, // Lane 2 -> South 2
+                    2 => TurnDirection::Left,     // Lane 3 -> East 4
+                    _ => unreachable!()
+                };
+                (lane, turn_direction)
+            },
+            Direction::West => {
+                // West: Only Lanes 1,2,3 (inbound)
+                let lane_idx = rng.gen_range(0..LANES_PER_SIDE);
+                let lane = WEST_INBOUND_START + lane_idx;
+                let turn_direction = match lane_idx {
+                    0 => TurnDirection::Right,    // Lane 1 -> North 6
+                    1 => TurnDirection::Straight, // Lane 2 -> West 2
+                    2 => TurnDirection::Left,     // Lane 3 -> South 3
+                    _ => unreachable!()
+                };
+                (lane, turn_direction)
+            },
+            Direction::North => {
+                // North: Only Lanes 4,5,6 (inbound)
+                let lane_idx = rng.gen_range(0..LANES_PER_SIDE);
+                let lane = NORTH_INBOUND_START + lane_idx;
+                let turn_direction = match lane_idx {
+                    0 => TurnDirection::Left,     // Lane 4 -> West 3
+                    1 => TurnDirection::Straight, // Lane 5 -> North 5
+                    2 => TurnDirection::Right,    // Lane 6 -> East 6
+                    _ => unreachable!()
+                };
+                (lane, turn_direction)
+            },
         };
 
         Vehicle::new(direction, lane, turn_direction)
@@ -121,25 +127,25 @@ impl Vehicle {
 
     fn get_target_lane(&self) -> i32 {
         match (self.direction, self.turn_direction) {
-            // From North (outbound lanes 0,1,2)
-            (Direction::North, TurnDirection::Right) => 0,    // To East's first lane
-            (Direction::North, TurnDirection::Straight) => 1, // To South's second outbound lane
-            (Direction::North, TurnDirection::Left) => 5,     // To West's last lane
+            // From East (Lanes 4,5,6)
+            (Direction::East, TurnDirection::Left) => 3,     // Lane 4 -> North 4
+            (Direction::East, TurnDirection::Straight) => 4, // Lane 5 -> East 5
+            (Direction::East, TurnDirection::Right) => 0,    // Lane 6 -> South 1
             
-            // From South (outbound lanes 3,4,5)
-            (Direction::South, TurnDirection::Right) => 5,    // To West's last lane
-            (Direction::South, TurnDirection::Straight) => 4, // To North's second outbound lane
-            (Direction::South, TurnDirection::Left) => 0,     // To East's first lane
+            // From South (Lanes 1,2,3)
+            (Direction::South, TurnDirection::Right) => 0,   // Lane 1 -> West 1
+            (Direction::South, TurnDirection::Straight) => 1, // Lane 2 -> South 2
+            (Direction::South, TurnDirection::Left) => 3,    // Lane 3 -> East 4
             
-            // From East (outbound lanes 0,1,2)
-            (Direction::East, TurnDirection::Right) => 0,     // To South's first lane
-            (Direction::East, TurnDirection::Straight) => 1,  // To West's second outbound lane
-            (Direction::East, TurnDirection::Left) => 5,      // To North's last lane
+            // From West (Lanes 1,2,3)
+            (Direction::West, TurnDirection::Right) => 5,    // Lane 1 -> North 6
+            (Direction::West, TurnDirection::Straight) => 1, // Lane 2 -> West 2
+            (Direction::West, TurnDirection::Left) => 2,     // Lane 3 -> South 3
             
-            // From West (outbound lanes 3,4,5)
-            (Direction::West, TurnDirection::Right) => 5,     // To North's last lane
-            (Direction::West, TurnDirection::Straight) => 4,  // To East's second outbound lane
-            (Direction::West, TurnDirection::Left) => 0,      // To South's first lane
+            // From North (Lanes 4,5,6)
+            (Direction::North, TurnDirection::Left) => 2,    // Lane 4 -> West 3
+            (Direction::North, TurnDirection::Straight) => 4, // Lane 5 -> North 5
+            (Direction::North, TurnDirection::Right) => 5,   // Lane 6 -> East 6
         }
     }
 
